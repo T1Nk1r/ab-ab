@@ -1,0 +1,150 @@
+linux 检查连接数(结果/2)
+netstat -ant|grep 8080|grep ESTABLISHED|grep -v grep|wc -l 
+
+配置文件优化
+设置 Tomcat Connector模式(如需开启openssl则用apr模式，否则开启nio2模式)
+#如果未安装 https://my.oschina.net/lsw90/blog/181161
+#在Tomcat安装目录 $CATALINA_BASE/conf/server.xml文件中将如下配置
+#适合高并发+keepalived+ssl
+protocol属性值改为org.apache.coyote.http11.Http11AprProtocol
+
+线程池设置
+<Executor name="tomcatThreadPool" namePrefix="catalina-exec-"
+        maxThreads="1000" minSpareThreads="20" maxSpareThreads="100" maxIdleTime="60000"/>
+
+maxThreads                   同时处理最大并发请求数，该值受服务器硬件配置影响，过大设置该值会导致CPU一直处于线程切换状态而没有时间处理真正的业务从而增加处理时间
+minSpareThreads              tomcat启动时初始化线程数
+maxSpareThreads              最大空闲线程数
+maxIdleTime                  线程最大空闲时间，60s  
+
+修改<Connector …>节点
+
+<Connector executor="tomcatThreadPool"
+               port="8080" protocol="HTTP/1.1"
+               URIEncoding="UTF-8"
+               connectionTimeout="10000"
+               enableLookups="false"
+               disableUploadTimeout="true"
+               connectionUploadTimeout="15000"
+			   maxConnections="10000"
+               acceptCount="1000"
+               keepAliveTimeout="30000"
+               maxKeepAliveRequests="700"
+               redirectPort="8443" />
+			   
+URIEncoding：指定 Tomcat 容器的 URL 编码格式，使得tomcat可以解析含有中文名的文件的url
+connectionTimeout： 网络连接超时时间(毫秒)
+enableLookups: 是否反查域名，以返回远程主机的主机名。设置为false跳过DNS解析可以提高处理能力。
+disableUploadTimeout：上传时是否使用超时机制。
+connectionUploadTimeout：上传超时时间,需要与上一个参数一起配合使用才会生效。
+服务器在任何给定时间接受和处理的最大连接数。达到此数量后，服务器将接受但不处理另一个连接。
+此额外连接将被阻止，直到正在处理的连接数量低于maxConnections，此时服务器将开始接受并再次处理新连接。默认值为8192。windows上最大值为1024倍数。
+acceptCount：指定当所有可以使用的处理请求的线程数都被使用时，可传入连接请求的最大队列长度，超过这个数的请求将不予处理，默认为100个。
+keepAliveTimeout：长连接最大保持时间（毫秒），表示在下次请求过来之前，Tomcat 保持该连接多久，默认是使用 connectionTimeout 时间，-1 为不限制超时
+maxKeepAliveRequests：表示在服务器关闭之前，该连接最大支持的请求数。
+					  超过该请求数的连接也将被关闭，1表示禁用，-1表示不限制个数，默认100个，设置为maxTreads的 75%；
+redirectPort: https 请求协议端口
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+日志优化
+.handlers = 1catalina.org.apache.juli.FileHandler,
+ java.util.logging.ConsoleHandler
+#修改为
+.handlers = 1catalina.org.apache.juli.FileHandler
+
+1catalina.java.util.logging.FileHandler.pattern =
+ ${catalina.base}/logs/catalina.%g.log
+1catalina.java.util.logging.FileHandler.limit = 20000000
+1catalina.java.util.logging.FileHandler.count = 5
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+JVM优化
+
+tomcat 启动参数在Linux下 ${JAVA_HOME}/bin/catalina.sh 。JAVA_OPTS，就是用来设置 JVM 相关运行参数的变量，还可以在 CATALINA_OPTS 变量中设置。
+JAVA_OPTS：用于当 Java 运行时选项“start”、“stop”或“run”命令执行。
+CATALINA_OPTS：用于当 Java 运行时选项“start”或“run”命令执行 。
+只有设定在 JAVA_OPTS 变量里的参数被传递到“stop”命令中。对于 Tomcat 运行过程，可能没什么区别，影响的是结束程序，而不是启动程序。
+其他应用程序也可以使用 JAVA_OPTS 变量，但只有在 Tomcat 中使用 CATALINA_OPTS 变量。
+
+添加以下内容到 catalina.sh  文件末尾(以下配置为6GB内存事例)
+
+CATALINA_OPTS="
+-server 
+-Xms5000M 
+-Xmx5000M 
+-Xss256k 
+-Xmn2g
+-XX:NewSize=2250M 
+-XX:MaxNewSize=2250M 
+-XX:PermSize=128M
+-XX:MaxPermSize=256M  
+-XX:+AggressiveOpts 
+-XX:+UseBiasedLocking 
+-XX:+DisableExplicitGC 
+-XX:+UseParNewGC 
+-XX:+UseConcMarkSweepGC 
+-XX:MaxTenuringThreshold=10 
+-XX:+CMSParallelRemarkEnabled 
+-XX:+UseCMSCompactAtFullCollection 
+-XX:LargePageSizeInBytes=16m 
+-XX:+UseFastAccessorMethods 
+-XX:+UseCMSInitiatingOccupancyOnly
+-XX:CMSInitiatingOccupancyFraction=70
+-XX:+UnlockExperimentalVMOptions
+-XX:+UseG1GC
+-Duser.timezone=Asia/Shanghai 
+-Djava.awt.headless=true"
+
+-server：一定要作为第一个参数，在多个 CPU 时性能佳，Server 模式的特点是启动速度比较慢，但运行时性能和内存管理效率很高，适用于生产环境.
+在具有 64 位能力的 JDK 环境下默认启用该模式，可以不配置该参数.
+-Xms：表示 Java 初始化堆的大小，-Xms 与-Xmx 设成一样的值，避免 JVM 反复重新申请内存，导致性能大起大落.
+默认值为物理内存的 1/64，默认（MinHeapFreeRatio参数可以调整）空余堆内存小于 40% 时，JVM 就会增大堆直到 -Xmx 的最大限制。
+-Xmx：表示最大 Java 堆大小，当应用程序需要的内存超出堆的最大值时虚拟机就会提示内存溢出，并且导致应用服务崩溃，因此一般设置为可用内存的最大值的80%。
+-Xss：表示每个 Java 线程堆栈大小，这个选项对性能影响比较大，需要严格的测试。
+JVM内存限制(最大值:-XmxXXXXM)
+在命令行下用 java -XmxXXXXM -version 命令来进行测试，然后逐渐的增大XXXX的值，如果执行正常就表示指定的内存大小可用，否则会打印错误信息。
+整个JVM内存大小=新生代大小 + 老生代大小 + 永久代大小。在保证堆大小不变的情况下，增大新生代后，将会减小老生代大小。
+-Xmn2g：设置新生代大小为2G。
+-XX:NewSize：设置新生代内存大小。
+-XX:MaxNewSize：设置最大新生代新生代内存大小
+-XX:PermSize：设置持久代内存大小
+-XX:MaxPermSize：设置最大值持久代内存大小，永久代不属于堆内存，堆内存只包含新生代和老年代。
+-XX:+AggressiveOpts：作用如其名（aggressive），启用这个参数，则每当 JDK 版本升级时，你的 JVM 都会使用最新加入的优化技术（如果有的话）。
+-XX:+UseBiasedLocking：启用一个优化了的线程锁，我们知道在我们的appserver，每个http请求就是一个线程，
+有的请求短有的请求长，就会有请求排队的现象，甚至还会出现线程阻塞，这个优化了的线程锁使得你的appserver内对线程处理自动进行最优调配。
+-XX:+DisableExplicitGC：在 程序代码中不允许有显示的调用“System.gc()”。每次在到操作结束时手动调用 System.gc() 一下，
+付出的代价就是系统响应时间严重降低，就和关于 Xms，Xmx 里的解释的原理一样，这样去调用 GC 导致系统的 JVM 大起大落。
+-XX:+UseConcMarkSweepGC：设置年老代为并发收集，即 CMS gc，它使用的是 gc 估算触发和 heap 占用触发。我们知道频频繁的 GC 会造面 JVM
+的大起大落从而影响到系统的效率，因此使用了 CMS GC 后可以在 GC 次数增多的情况下，每次 GC 的响应时间却很短.
+-XX:+UseParNewGC：对新生代采用多线程并行回收，这样收得快，注意最新的 JVM 版本，当使用 -XX:+UseConcMarkSweepGC 时，-XX:UseParNewGC 会自动开启。
+因此，如果年轻代的并行 GC 不想开启，可以通过设置 -XX：-UseParNewGC 来关掉。
+-XX:MaxTenuringThreshold：设置垃圾最大年龄。如果设置为0的话，则新生代对象不经过 Survivor 区，直接进入老年代。
+对于老年代比较多的应用（需要大量常驻内存的应用），可以提高效率。
+如果将此值设置为一 个较大值，则新生代对象会在 Survivor 区进行多次复制，这样可以增加对象在新生代的存活时间，
+增加在新生代即被回收的概率，减少Full GC的频率，这样做可以在某种程度上提高服务稳定性。该参数只有在串行 GC 时才有效，
+这个值的设置是根据本地的 jprofiler 监控后得到的一个理想的值，不能一概而论原搬照抄。
+-XX:+CMSParallelRemarkEnabled：在使用 UseParNewGC 的情况下，尽量减少 mark 的时间。
+-XX:+UseCMSCompactAtFullCollection：在使用 concurrent gc 的情况下，防止 memoryfragmention，对 live object 进行整理，使 memory 碎片减少。
+-XX:LargePageSizeInBytes：指定 Java heap 的分页页面大小，内存页的大小不可设置过大， 会影响 Perm 的大小。
+-XX:+UseFastAccessorMethods：使用 get，set 方法转成本地代码，原始类型的快速优化。
+-XX:+UseCMSInitiatingOccupancyOnly：只有在 oldgeneration 在使用了初始化的比例后 concurrent collector 启动收集。
+-Duser.timezone=Asia/Shanghai：设置用户所在时区。
+-Djava.awt.headless=true：这个参数一般我们都是放在最后使用的，这全参数的作用是这样的，
+有时我们会在我们的 J2EE 工程中使用一些图表工具如：jfreechart，用于在 web 网页输出 GIF/JPG 等流，
+在 winodws 环境下，一般我们的 app server 在输出图形时不会碰到什么问题，
+但是在linux/unix 环境下经常会碰到一个 exception 导致你在 winodws 开发环境下图片显示的好好可是在 linux/unix 下却显示不出来，
+因此加上这个参数以免避这样的情况出现。
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+杂项
+预编译jsp页面
+把不经常修改或者很少修改的页面替换为静态页面
+Set Development=False
+Set genStringAsCharArray=True
+Set trimSpaces=True
+
+-----------------------------------------------------------------------------------------------------------------------------
+

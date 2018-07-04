@@ -1,0 +1,135 @@
+#移除已安装docker
+yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-selinux \
+                  docker-engine-selinux \
+                  docker-engine
+
+
+yum install -y yum-utils \
+  device-mapper-persistent-data \
+  lvm2
+  
+yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+	
+yum install -y docker-ce
+systemctl start docker
+systemctl enable docker
+
+
+#安装docker-compose
+yum -y install epel-release
+yum -y install python-pip
+pip install docker-compose
+#查看是否安装成功
+docker-compose version
+
+#安装docker-machine
+base=https://github.com/docker/machine/releases/download/v0.14.0 &&
+curl -L $base/docker-machine-$(uname -s)-$(uname -m) >/tmp/docker-machine &&
+sudo install /tmp/docker-machine /usr/local/bin/docker-machine
+
+#安装virtualbox
+在/etc/yum.repos.d/目录下新建virtualbox.repo并写入如下内容
+vi /etc/yum.repos.d/virtualbox.repo
+[virtualbox]
+name=Oracle Linux / RHEL / CentOS-$releasever / $basearch - VirtualBox
+baseurl=http://download.virtualbox.org/virtualbox/rpm/el/$releasever/$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://www.virtualbox.org/download/oracle_vbox.asc
+
+#更新yum缓存
+yum clean all
+yum makecache
+
+#安装virtualbox
+yum install -y VirtualBox-5.1
+
+
+#升级内核
+yum install -y kernel-devel-3.10.0-862.el7.x86_64
+sudo /sbin/vboxconfig    
+
+#到源码网址：https://github.com/boot2docker/boot2docker/releases 下载boot2docker.iso
+#然后上传到/root/.docker/machine/cache  （把原有的ios文件删掉 ）
+
+#关掉虚拟机，设置->处理器-> 找到虚拟化 intel-vt/x...AMD 这一选项勾上  重启虚拟机
+
+
+#docker官方文件地址，可以自行用相关文件生成镜像
+https://github.com/docker-library/
+
+#拉取镜像
+#docker pull imagename/docker pull dockuser/repo
+
+#若端口被占用，可以指定容器和主机的映射端口 前者是外围访问端口：后者是容器内部端口
+#docker run -p realport:originalport imagename
+#eg:
+docker run -p 80:8080 tomcat
+
+
+#千万不要创建了文件之后用记事本notepad++之内的复制，一定要用vi或者vim打开空文件然后复制保存。
+#千万不要创建了文件之后用记事本notepad++之内的复制，一定要用vi或者vim打开空文件然后复制保存。
+#千万不要创建了文件之后用记事本notepad++之内的复制，一定要用vi或者vim打开空文件然后复制保存。
+#docker 安装 mysql 8.0.x 以下是相关文件地址，对照下面的目录创建对应目录 复制到对应文件 然后运行 docker build -t mysql .   (注意输入 .)
+https://github.com/docker-library/mysql/tree/master/8.0
+
+#nginx 官方docker-file 地址
+https://github.com/nginxinc/docker-nginx/tree/master/stable/alpine
+
+#tomcat 官方docker-file 地址
+https://github.com/docker-library/tomcat/tree/1ce7bd2eed038fb722527f41f0f185322d53e979
+
+#haproxy 官方docker-file 地址
+https://github.com/docker-library/haproxy/tree/7837715e428efe0943053aae0130c709d017fd81
+
+
+#写入先关文件之后构建mysql 如果构建成功最后会显示successfully
+#如果构建镜像有 docker-entrypoint.sh 文件的，需要加上下面这条语句给与执行权限。没有就忽略
+chmod +x docker-entrypoint.sh
+
+docker build -t mysql . 
+#以后台方式启动mysql 
+docker run -itd -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root --name mysql mysql
+#进入docker中的Mysql
+docker exec -it mysql /bin/bash
+
+#和普通的mysql一样进行相关操作即可
+
+#输入  exit  退出
+
+#安装vi
+apt-get update 
+apt-get install -y vim-tiny
+
+#安装 ping
+apt install -y iputils-ping # ping
+
+# 安装 ifconfig
+apt install net-tools -y # ifconfig 
+
+#把容器保存为镜像
+docker commit containerid imagename
+
+#容器间通信 joined 方式
+#创建一个 httpd 容器，名字为 web1。
+docker run -d -it --name=web1 httpd
+#然后创建 busybox 容器并通过 --network=container:web1 指定 jointed 容器为 web1
+docker run -it --network=container:web1 nginx
+#他们2个的MAC 和 IP 地址一模一样，他们共享了相同的网络线，nginx 可以直接用127.0.0.1 访问 web1 的 http 服务
+
+#容器间通信 dns_server 模式
+docker network create -d bridge --subnet=10.0.0.0/24 my_bridge2
+docker run -it --network=my_bridge2 --name=bbox1 tomcat1
+docker run -it --network=my_bridge2 --name=bbox2 tomcat2
+#该模式需要在 user_defined 网络中使用。
+																																																																																																																																																																																																																																															

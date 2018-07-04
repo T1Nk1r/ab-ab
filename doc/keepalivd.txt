@@ -1,0 +1,34 @@
+#安装依赖包
+yum install -y pcre-devel openssl-devel popt-devel  libnl libnl-3
+#LVS
+yum -y install keeplived ipvsadm
+wget http://www.keepalived.org/software/keepalived-1.4.0.tar.gz
+tar zxvf keepalived-1.4.0.tar.gz
+cd keepalived-1.4.0
+./configure --prefix=/usr/local/keepalived
+make
+make install
+
+
+#将keepalived配置成系统服务
+cp /usr/local/keepalived/etc/sysconfig/keepalived /etc/init.d/
+cp /usr/local/keepalived/etc/sysconfig/keepalived /etc/sysconfig/
+mkdir /etc/keepalived/
+cp /usr/local/keepalived/etc/keepalived/keepalived.conf /etc/keepalived/
+cp /usr/local/keepalived/sbin/keepalived /usr/sbin/
+
+http://blog.jobbole.com/94643/
+
+
+#tips:
+1.配置keepalived virtual_ipaddress 节点的时候使用服务器同一网段IP（如 服务器IP 111.111.111.1 就设置为 111.111.111.xxx 不重复就行，任意设置）
+2.主从 keepalived.conf 里的 priority 和 weight 设置要保证 priority+weight<priority-weight 否则主宕机时vip无法切换
+2.1 当weight > 0时，vrrp_script script脚本执行返回0(成功)时优先级为priority + weight, 否则为priority。
+当BACKUP发现自己的优先级大于MASTER通告的优先级时，进行主从切换。
+2.2 当weight < 0时，vrrp_script script脚本执行返回非0(失败)时优先级为priority + weight, 否则为priority。
+当BACKUP发现自己的优先级大于MASTER通告的优先级时，进行主从切换。 3. 当两个节点的优先级相同时，以节点发送VRRP通告的IP作为比较对象，IP较大者为MASTER。 
+
+3.防火墙放行 vrrp协议
+vi /etc/sysconfig/iptables
+-A INPUT -p vrrp -j ACCEPT
+

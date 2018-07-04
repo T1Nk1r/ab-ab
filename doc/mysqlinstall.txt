@@ -1,0 +1,58 @@
+#tips: 安装mysql之前需要先卸载mariadb 相关组件
+rpm -qa | grep maria 
+yum remove -y (上面查询到的项)
+
+rpm -ivh mysql-community-common-8.0.11-1.el6.x86_64.rpm
+rpm -ivh mysql-community-libs-8.0.11-1.el6.x86_64.rpm
+rpm -ivh mysql-community-client-8.0.11-1.el6.x86_64.rpm
+rpm -ivh mysql-community-server-8.0.11-1.el6.x86_64.rpm
+rpm -ivh mysql-community-devel-8.0.11-1.el6.x86_64.rpm
+
+#初始化数据库		
+mysqld --initialize --user=mysql
+#如需开启ssl就执行
+#mysql_ssl_rsa_setup 
+
+systemctl start mysqld
+
+(设置开机启动)
+systemctl enable mysqld
+
+生成一个随机初始密码（在下面生成的字符串的末尾，区分大小写）
+grep 'temporary password' /var/log/mysqld.log
+
+mysql -u root -p
+
+//用随机初始密码登录后修改密码为root
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; 
+
+
+开启远程服务
+CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password  BY 'root';   
+//修改密码认证方式为mysql_native_password
+
+ GRANT ALL privileges ON *.* TO 'root'@'%';
+
+flush privileges;
+
+vi /etc/sysconfig/iptables
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 3306 -j ACCEPT
+:wq
+systemctl restart iptables.service
+	
+
+修改my.cnf 文件 新增以下行
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+skip-name-resolve
+#skip-networking 该项需要注释
+skip_ssl 
+
+systemctl restart mysqld
+
+运行程序报以下错误的时候(出现场景 sql group by 语句 不严格）
+（Expression #1 of SELECT list is not in GROUP BY clause and contains nonaggregated column  which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by）
+navicat 连接到对应的服务器->f6进入命令行模式
+ set GLOBAL sql_mode ='NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES ';
+
+#mysql配置优化
+https://blog.csdn.net/lifetragedy/article/details/52582789

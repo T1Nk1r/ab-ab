@@ -1,0 +1,166 @@
+#1、全局块：配置影响nginx全局的指令。一般有运行nginx服务器的用户组，nginx进程pid存放路径，
+#日志存放路径，配置文件引入，允许生成worker process数等。
+#2、events块：配置影响nginx服务器或与用户的网络连接。有每个进程的最大连接数，
+#选取哪种事件驱动模型处理连接请求，是否允许同时接受多个网路连接，开启多个网络连接序列化等。
+#3、http块：可以嵌套多个server，配置代理，缓存，日志定义等绝大多数功能和第三方模块的配置。
+#如文件引入，mime-type定义，日志自定义，是否使用sendfile传输文件，连接超时时间，单连接请求数等。
+#4、server块：配置虚拟主机的相关参数，一个http中可以有多个server。
+#5、location块：配置请求的路由，以及各种页面的处理情况。
+########### 每个指令必须有分号结束。#################
+
+#-------------------------------------全局块---------------------------------------
+#全局设置
+#配置用户或者组，默认为nobody nobody。
+user  root root;
+#允许生成的进程数，默认为1。设置为内核的数量，不确定时可以设置为auto 自动检测。
+worker_processes  8;
+#该参数需要设置服务器进程最大可打开文件数量值
+worker_rlimit_nofile 65535;
+
+#日志文件存放地址
+#日志级别为 debug|info|notice|warn|error|crit|alert|emerg
+error_log  /var/logs/error.log  warm;
+
+#指定nginx进程运行文件存放地址
+pid  /var/run/nginx.pid; 
+
+#------------------------------------全局 end---------------------------------------
+
+#------------------------------------events块---------------------------------------
+#工作模式及连接数上限
+events {
+    use epoll;
+	#单个worker进程同时打开的最大连接数
+    worker_connections 2048; 
+}
+
+#-------------------------------------events end------------------------------------
+
+#-------------------------------------http块----------------------------------------
+#设定http服务器，利用它的反向代理功能提供负载均衡支持
+http {
+
+	#--------------------------------http 全局 块-----------------------------------
+	#设定mime类型,类型由mime.type文件定义
+    include       mime.types;
+    default_type  application/octet-stream;
+	
+	#设置我们的头文件中的默认的字符集
+	charset UTF-8; 
+	
+	#关闭在错误页面中的nginx版本数字
+	server_tokens off; 
+	
+	#关闭访问日志提高IO
+	access_log off; 
+	
+	#指令指定 nginx 是否调用 sendfile 函数（zero copy 方式）来输出文件
+    sendfile        on;
+	
+	#将tcp_nopush和tcp_nodelay两个指令设置为on用于防止网络阻塞
+    tcp_nopush     on;
+	tcp_nodelay     on;
+	
+	#关闭不响应的客户端连接。这将会释放那个客户端所占有的内存空间。
+	reset_timedout_connection on;
+	
+	#连接超时时间
+    keepalive_timeout  10;
+
+	#开启gzip压缩，减少我们发送的数据量
+    gzip  on;
+	
+	#设定请求缓冲
+    client_header_buffer_size    1k;
+    large_client_header_buffers  4 4k;
+	
+	#--------------------------------http 全局 end----------------------------------
+
+	#-------------------------------http server 块----------------------------------
+    server {
+        listen       80;
+        server_name  localhost;
+
+        #charset koi8-r;
+
+        #access_log  logs/host.access.log  main;
+        #----------------------------location 块----------------------------------
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+
+        #error_page  404              /404.html;
+
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+        #
+        #location ~ \.php$ {
+        #    proxy_pass   http://127.0.0.1;
+        #}
+
+        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+        #
+        #location ~ \.php$ {
+        #    root           html;
+        #    fastcgi_pass   127.0.0.1:9000;
+        #    fastcgi_index  index.php;
+        #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+        #    include        fastcgi_params;
+        #}
+
+        # deny access to .htaccess files, if Apache's document root
+        # concurs with nginx's one
+        #
+        #location ~ /\.ht {
+        #    deny  all;
+        #}
+		
+		#----------------------------location end----------------------------------
+    }
+
+
+    # another virtual host using mix of IP-, name-, and port-based configuration
+    #
+    #server {
+    #    listen       8000;
+    #    listen       somename:8080;
+    #    server_name  somename  alias  another.alias;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+
+    # HTTPS server
+    #
+    #server {
+    #    listen       443 ssl;
+    #    server_name  localhost;
+
+    #    ssl_certificate      cert.pem;
+    #    ssl_certificate_key  cert.key;
+
+    #    ssl_session_cache    shared:SSL:1m;
+    #    ssl_session_timeout  5m;
+
+    #    ssl_ciphers  HIGH:!aNULL:!MD5;
+    #    ssl_prefer_server_ciphers  on;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+	#-------------------------------http server end----------------------------------
+
+}
+#-------------------------------------http end----------------------------------------

@@ -1,0 +1,12 @@
+yum list | grep jdk  查看jdk源
+yum -y install .....  安装指定JDK版本，不指定目录会安装在/url/lib/jvm/ 目录下
+
+vi /etc/profile
+（设置环境变量，在最下方添加下面几行，java_home值为jdk安装目录）
+JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.171-3.b10.el6_9.x86_64
+JRE_HOME=$JAVA_HOME/jre
+CLASS_PATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib
+PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin
+export JAVA_HOME JRE_HOME CLASS_PATH PATH
+
+ source /etc/profile (不重启使配置生效)

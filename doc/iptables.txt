@@ -1,0 +1,29 @@
+#禁用firewall 启用iptables 作为防火墙
+
+#安装netstat 和ifconfig 
+yum -y install net-tools
+
+#安装perl mysql依赖
+yum -y install perl
+
+yum -y install wget gcc gcc-c++  openssl openssl-devel 
+yum install -y ncurses ncurses-devel libaio-devel pcre-devel zlib-devel  cmake
+#tips: 安装mysql之前需要先卸载mariadb 相关组件
+
+
+systemctl stop firewalld.service
+systemctl disable firewalld.service
+yum install -y iptables-services
+
+#增加 3306 对外端口。添加新端口参照此语句！
+vi /etc/sysconfig/iptables
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 3306 -j ACCEPT
+:wq
+systemctl restart iptables.service
+systemctl enable iptables.service
+vi /etc/selinux/config
+#SELINUX=enforcing #注释掉
+#SELINUXTYPE=targeted #注释掉
+SELINUX=disabled #增加
+:wq
+setenforce 0

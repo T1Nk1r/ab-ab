@@ -1,0 +1,43 @@
+mysqld --initialize --user=mysql
+mysql_ssl_rsa_setup  
+
+#创建一个文件夹存放相关文件
+mkdir /etc/cert    
+cd /etc/cert
+
+openssl genrsa 2048 > ca-key.pem
+
+#执行的时候需要输入相关的项，第一项COUNTRY_Name 和其余的不能相同，其余的必须相同 (为空就行，一路enter~~)
+openssl req -new -x509 -nodes -days 1000 -key ca-key.pem > ca-cert.pem
+
+openssl req -newkey rsa:2048 -days 1000 -nodes -keyout server-key.pem > server-req.pem
+openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 > server-cert.pem
+
+openssl req -newkey rsa:2048 -days 1000 -nodes -keyout client-key.pem > client-req.pem
+openssl x509 -req -in client-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 > client-cert.pem
+
+#验证生成的证书是否成功，成功会有2行xxxxxxxx  OK 其余的为生成失败，需要再来一次！
+openssl verify -CAfile ca-cert.pem server-cert.pem client-cert.pem
+
+#生成成功后需要修改文件的所有者
+chown mysql.mysql *
+
+#MYSQL主服务器下
+[mysqld]节需要添加如下配置
+ssl-ca=/etc/cert/ca-cert.pem 
+ssl-cert=/etc/cert/server-cert.pem 
+ssl-key=/etc/cert/server-key.pem
+
+#需要专门创建一个mysql帐号，指定指定必须用ssl模式登录 ssl_user 为帐号  root 自行修改
+#GRANT REPLICATION SLAVE ON *.* TO 'rep'@'192.168.200.%' IDENTIFIED BY 'root' REQUIRE SSL; (创建主从账号 IP为从服务器地址)
+create user 'ssl_user'@'%' IDENTIFIED WITH mysql_native_password  BY 'root' REQUIRE SSL;
+GRANT ALL privileges ON *.* TO 'ssl_user'@'%';
+flush privileges;
+
+#MYSQL从服务器下
+#从MYSQL主服务器拷贝出ca-cert.pem  client-cert.pem client-key.pem 3个文件到MYSQL从服务器 /etc/cert 目录
+
+#[mysqld]节需要添加如下配置
+ssl-ca=/etc/cert/ca-cert.pem 
+ssl-cert=/etc/cert/client-cert.pem 
+ssl-key=/etc/cert/client-key.pem

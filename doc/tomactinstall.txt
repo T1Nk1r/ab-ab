@@ -1,0 +1,32 @@
+下载对应的tomcat版本
+
+tar -zxvf ..... 
+
+vi /etc/init.d/tomcat  （新建tomcat服务脚本）
+
+#!/bin/bash
+# description: Tomcat Start Stop Restart
+# processname: tomcat
+# chkconfig: 234 20 80
+
+CATALINA_HOME= tomcat 路径
+
+case $1 in
+        start)
+                sh $CATALINA_HOME/bin/startup.sh
+                ;;
+        stop)
+                sh $CATALINA_HOME/bin/shutdown.sh
+                ;;
+        restart)
+                sh $CATALINA_HOME/bin/shutdown.sh
+                sh $CATALINA_HOME/bin/startup.sh
+                ;;
+        *)
+                echo 'please use : tomcat {start | stop | restart}'
+        ;;
+esac
+exit 0
+
+
+

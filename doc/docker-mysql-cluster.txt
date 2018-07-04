@@ -1,0 +1,139 @@
+https://www.cnblogs.com/zz123/p/4076805.html
+
+https://blog.csdn.net/qq_34021712/article/details/75948566
+
+https://blog.csdn.net/wxm6614/article/details/78263592
+
+https://www.jianshu.com/p/3eb7448adea0
+
+https://github.com/josdirksen/next-build-consul  consul 仓库
+http://dockone.io/article/1359
+
+#redis 主从
+https://yq.aliyun.com/articles/69444
+
+#基础命令
+https://blog.csdn.net/wanglei_storage/article/details/77508620
+
+
+#创建集群，如果ens33网卡上面只有单个IP可以不需要 --advertise-addr 参数
+docker swarm init --advertise-addr=172.18.168.75
+#运行上面的代码会生成如下语句，在每个节点运行它用于加入上面的这个集群
+docker swarm join --token SWMTKN-1-5kh6ftccgnyqdgei2vwovda6rgi6rsc1bd2l0pnjlceohgohnp-3cyk0x337ck0is5q7qzugtqhu 172.18.168.75:2377
+#如果忘记记下上面生成的代码，在管理节点运行如下语句 
+docker swarm join-token worker
+
+#以下命令需在管理节点运行
+#在管理节点运行以下语句，然后在浏览器打开对应地址和端口，会看到所有节点以及各节点运行的任务
+docker run -it -d -p 5000:8080 -v /var/run/docker.sock:/var/run/docker.sock dockersamples/visualizer
+
+#创建服务
+docker service create --replicas 1 --name helloworld alpine ping docker.com
+#该docker service create命令创建该服务。
+#该--name标志命名该服​​务helloworld。
+#该--replicas标志指定了正在运行的实例的所需状态。
+#参数alpine ping docker.com将服务定义为执行命令的Alpine Linux容器ping docker.com。
+#--update-delay标志配置更新服务任务或多组任务之间的时间延迟。您可以将时间描述T为秒数Ts，分钟数Tm或小时数的组合Th。因此 10m30s表示延迟10分30秒
+
+#更新服务
+docker service update --image image-id  service-id
+#image-id 为你要更新到的镜像的版本
+#service-id 为要更新的服务ID
+
+#重新启动暂停的更新
+docker service update service-id
+
+#查看运行中的服务
+docker service ls
+
+#查看服务的详细信息(以json格式返回不加 --pretty 命令)
+docker service inspect --pretty service-id
+
+#查看服务运行在哪一个节点
+docker service ps service-id
+ 
+#设置服务运行的个数
+docker service scale SERVICE-ID=NUMBER-OF-TASKS
+
+#删除服务
+docker service rm SERVICE-ID
+
+#排除节点，使任务不再分配给它(node-id 为工作节点 hostname)
+docker node update --availability drain <NODE-ID>
+#激活节点
+docker node update --availability active <NODE-ID>
+
+#发布服务端口
+docker service create \
+  --name <SERVICE-NAME> \
+  --publish published=<PUBLISHED-PORT>,target=<CONTAINER-PORT>,protocol=udp \
+  <IMAGE>
+  
+#短语法
+docker service create \
+  --name <SERVICE-NAME> \
+  -p <PUBLISHED-PORT>:<CONTAINER-PORT>/udp \
+  <IMAGE>
+
+#--publish创建服务时，使用该标志发布端口。target 用于指定容器内的端口，
+#并published用于指定绑定到路由网格上的端口。如果离开published 端口，
+#则为每个服务任务绑定一个随机的高编号端口。您需要检查任务以确定端口
+#这<PUBLISHED-PORT>是群体提供服务的端口。如果省略它，则绑定一个随机的高编号端口。
+#这<CONTAINER-PORT>是容器侦听的端口。该参数是必需的
+#protocol=udp 该端口作为udp开放，不带protocol参数默认为tcp
+
+
+#自定义默认入口网络
+#删除现有的swarm网络ingress,docker_gwbridge创建自定义网络(自行定义未使用IP段)
+docker network rm ingress
+docker network create \
+  --driver overlay \
+  --ingress \
+  --subnet=10.11.0.0/16 \
+  --gateway=10.11.0.2 \
+  --opt com.docker.network.driver.mtu=1200 \
+  my-ingress
+  
+docker network create \
+--subnet 10.11.0.0/16 \
+--opt com.docker.network.bridge.name=docker_gwbridge \
+--opt com.docker.network.bridge.enable_icc=false \
+--opt com.docker.network.bridge.enable_ip_masquerade=true \
+docker_gwbridge
+
+#创建用户自定义overlay网络，用于集群间跨主机通信
+docker network create -d overlay --attachable my-lay
+--attachable 加上此参数 docker run --network 可以使用带有该参数的网络和集群中其它容器通信
+
+  
+#在指定容器上运行服务
+#给每一个node打标签
+docker node update --label-add func=nginx worker1
+#master给worker1的docker打上了功能是nginx的标签。func和nginx是你可以自己定的键值对
+#运行docker service create 的时候，指定–constraint参数
+docker service create --name my_nginx --constraint 'node.labels.func == nginx' nginx
+#这样nginx的容器就会在worker1上启动，而不会在其他node上启动了
+
+#创建mysql 服务
+docker service create   \
+ --name db \
+ --constraint engine.labels.hostname==worker2  \
+ --replicas=3 \
+ --network=my-lay \
+ --env MYSQL_ROOT_PASSWORD=root \
+ mysql
+#--name 为服务名称
+#--constraint engine.labels.hostname为指定节点运行此服务,注意是(==),不是(=)。不使用该选项服务将会随机在各节点运行！配置方法如下：
+#在ExecStart 选项值后加上  --label key=value  此处为 --label hostname=worker2
+#--replicas 实例个数,为swarm 模式下自带的负载均衡设置
+#--network 服务所使用的网络名称
+#--env MYSQL_ROOT_PASSWORD   此项为mysql独有，mysql容器启动必须带有此选项，否则无法创建服务！
+#mysql 为创建服务需要的镜像名称
+
+#集群发布 
+docker stack deploy --compose-file docker-compose.yml tag_name
+#运行此命令需要安装docker-compose 插件
+#docker-compose.yml 为需要发布的services 配置文件,参考下面链接
+#https://docs.docker.com/compose/compose-file/#compose-file-structure-and-examples
+#tag_name 是部署任务时每个任务的前缀
+

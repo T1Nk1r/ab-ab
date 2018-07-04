@@ -1,0 +1,6 @@
+1. mysql数据库备份，恢复
+2. mysql主从备份(master & slave)
+3. mysql数据库自动切换方案
+4. 日志监控，数据转移恢复,留言板定期清除(只保留1个月的数据)
+5. docker安装tomcat,jdk,redis，nginx
+6. docker集群搭建方案

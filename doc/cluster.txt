@@ -1,0 +1,29 @@
+#nginx+keepalived
+https://blog.csdn.net/xyang81/article/details/52556886
+
+http://www.keepalived.org/pdf/sery-lvs-cluster.pdf
+
+https://blog.csdn.net/xyang81/article/details/52554398
+#LVS+keepalived+nginx+tomcat部署实现
+http://blog.51cto.com/lovelace/1550188
+#lvs introduce
+http://www.linuxvirtualserver.org/zh/lvs1.html
+https://www.cnblogs.com/phpstudy2015-6/p/6706465.html
+#mysql主主复制
+http://www.cnblogs.com/phpstudy2015-6/p/6485819.html#_label7
+
+#MYSQL负载均衡
+https://www.cnblogs.com/moss_tan_jun/p/6614032.html 双主四从+haproxy
+
+#主写从读
+https://blog.csdn.net/nimasike/article/details/48048341
+
+#nginx+keepalived 双主
+https://blog.csdn.net/lexang1/article/details/52386909
+
+#设置虚拟IP
+https://www.cnblogs.com/duanxz/p/5011570.html
+https://blog.csdn.net/m0_37814112/article/details/78689006
+
+#keepalived 配置说明
+	

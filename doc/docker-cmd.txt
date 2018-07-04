@@ -1,0 +1,49 @@
+#docker cmd
+
+docker build -t friendlyhello .                # Create image using this directory's Dockerfile
+docker run -p 4000:80 friendlyhello            # Run "friendlyname" mapping port 4000 to 80
+docker run -d -p 4000:80 friendlyhello         # Same thing, but in detached mode
+docker container ls                                # List all running containers
+docker container ls -a                        # List all containers, even those not running
+docker container stop <hash>                  # Gracefully stop the specified container
+docker container kill <hash>                  # Force shutdown of the specified container
+docker container rm <hash>                    # Remove specified container from this machine
+docker container rm $(docker container ls -a -q)         # Remove all containers
+docker image ls -a                             # List all images on this machine
+docker image rm <image id>                    # Remove specified image from this machine
+docker image rm $(docker image ls -a -q)      # Remove all images from this machine
+docker login                                  # Log in this CLI session using your Docker credentials
+docker tag <image> username/repository:tag    # Tag <image> for upload to registry
+docker push username/repository:tag           # Upload tagged image to registry
+docker run username/repository:tag            # Run image from a registry
+docker service ls                 # List running services associated with an app
+docker service ps <service>                  # List tasks associated with an app
+
+#运行新的负载平衡应用程序
+
+docker swarm init
+#给你的应用一个名字。在这里，它被设置为 getstartedlab：
+docker stack deploy -c docker-compose.yml getstartedlab
+#查看重新配置的已部署实例
+docker container ls -q
+
+#取消应用程序和群
+docker stack rm getstartedlab
+docker swarm leave --force
+
+
+
+创建容器：
+# docker run -d -name centos7 --privileged=true centos:7 /usr/sbin/init
+进入容器：
+# docker exec -it centos7 /bin/bash
+这样可以使用systemctl启动服务了。
+
+#docker stack deploy --compose-file docker-compose.yml vossibility
+
+
+#iptables failed: iptables --wait -t nat -A DOCKER&xxxxxx
+pill docker 
+iptables -t nat -F 
+ifconfig docker0 down 
+systemctl restart docker

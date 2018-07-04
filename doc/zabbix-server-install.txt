@@ -1,0 +1,56 @@
+#install mysql first
+
+#tips:
+zabbix dont support mysql 8.0.x now! plz install the mysql version 5.4.x-5.7.x!
+
+#clean and download zabbix repo
+yum remove zabbix-release
+yum clean all
+rpm -ivh http://repo.zabbix.com/zabbix/3.4/rhel/7/x86_64/zabbix-release-3.4-2.el7.noarch.rpm
+
+
+yum install -y  zabbix-server-mysql zabbix-web-mysql
+
+useradd zabbix -s /sbin/nologin
+
+#create the mysql user zabbix database zabbix first;
+create database zabbix character set utf8 collate utf8_general_ci;
+create user 'zabbix'@'%' identified WITH mysql_native_password  by 'zabbix';
+grant all privileges on zabbix.* to 'zabbix'@'%';
+flush privileges;
+
+vi /etc/my.cnf
+#add
+[mysqld]
+user=zabbix
+password=zabbix
+
+cd /usr/share/doc/zabbix-server-mysql-3.4.10
+#Import zabbx databases and data ()
+zcat create.sql.gz | mysql -uroot -proot zabbix
+
+
+vi /etc/zabbix/zabbix_server.conf
+DBHost=ipaddress
+DBName=zabbix
+DBUser=zabbix
+DBPassword=zabbix
+
+systemctl enable zabbix-server
+systemctl start zabbix-server
+
+vi /etc/httpd/conf.d/zabbix.conf 
+edit # php_value date.timezone Europe/Riga
+php_value date.timezone Asia/Shanghai
+systemctl restart httpd
+
+vi /etc/sysconfig/iptables
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 10051 -j ACCEPT
+:wq
+systemctl restart iptables.service
+
+#open the explor and enter address  setting your zabbix
+yoursip/zabbix
+
+

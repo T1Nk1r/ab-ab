@@ -1,0 +1,18 @@
+mysql (集群) ->mycat , tomcat, jdk, docker, nginx, redis
+
+http://www.runoob.com/linux/nginx-install-setup.html（nginx安装教程!）
+
+
+1、熟悉raid磁盘阵列技术， LVM逻辑卷管理；
+2、熟练配置Linux系统的常用基础服务samba、vsftpd、nfs 、dns、squid等；
+3、熟悉shell编程语言；熟悉grep、awk、sed等脚本辅助工具；
+4、熟悉WEB服务器的搭建和维护，如：Apache、Nginx、Tomcat；
+5、熟练掌握Mysql的基本语句、AB复制、读写分离、数据备份及恢复；
+6、熟悉LNMP/LAMP环境的搭建；
+7、熟悉主流的监控平台如：zabbix、nagios；
+8、熟悉PXE、ansible自动化运维工具；
+9、熟悉KVM、VMware、docker虚拟化技术；
+10、熟悉LB负载均衡（haproxy、LVS、nginx）、HA高可用（keepalived）集群服务；
+11、熟悉nas、san、glusterfs、drbd存储技术；
+12、熟悉iptables基本工作原理，可以根据公司需求部署相应防火墙策略；
+13、熟悉TCP/IP协议；熟悉cisco网络设备基本配置（VLAN）；

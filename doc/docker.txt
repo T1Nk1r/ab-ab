@@ -1,0 +1,29 @@
+#https://www.cnblogs.com/bigberg/p/8516026.html
+#https://blog.csdn.net/boling_cavalry/article/details/70194072
+
+#构建xxx.yml文件 一键运行
+docker-compose up -d
+
+docker-compose downn
+
+#创建自定义网络
+docker network create -d  --subnet=<subnet ip>/<end renage> --gateway=<gateway ip> <network name>
+#下列命令创建了一个名为 my_net 的自定义网络
+docker network create \
+  --driver=bridge \
+  --subnet=172.28.0.0/16 \
+  --ip-range=172.28.5.0/24 \
+  --gateway=172.28.5.254 \
+  my_net 
+  
+  
+#docker keepalived 配置地址
+/container/service/keepalived/assets/keepalived.conf
+docker run --volume /data/my-keepalived.conf:/container/service/keepalived/assets/keepalived.conf --detach 
+
+
+vi /etc/sysctl.conf
+net.ipv4.ip_forward = 1
+#开启IP转发功能
+net.ipv4.ip_nonlocal_bind = 1
+#开启允许绑定非本机的IP
