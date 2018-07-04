@@ -1,6 +1,6 @@
-#tips: °²×°mysqlÖ®Ç°ĞèÒªÏÈĞ¶ÔØmariadb Ïà¹Ø×é¼ş
+#tips: å®‰è£…mysqlä¹‹å‰éœ€è¦å…ˆå¸è½½mariadb ç›¸å…³ç»„ä»¶
 rpm -qa | grep maria 
-yum remove -y (ÉÏÃæ²éÑ¯µ½µÄÏî)
+yum remove -y (ä¸Šé¢æŸ¥è¯¢åˆ°çš„é¡¹)
 
 rpm -ivh mysql-community-common-8.0.11-1.el6.x86_64.rpm
 rpm -ivh mysql-community-libs-8.0.11-1.el6.x86_64.rpm
@@ -8,28 +8,28 @@ rpm -ivh mysql-community-client-8.0.11-1.el6.x86_64.rpm
 rpm -ivh mysql-community-server-8.0.11-1.el6.x86_64.rpm
 rpm -ivh mysql-community-devel-8.0.11-1.el6.x86_64.rpm
 
-#³õÊ¼»¯Êı¾İ¿â		
+#åˆå§‹åŒ–æ•°æ®åº“		
 mysqld --initialize --user=mysql
-#ÈçĞè¿ªÆôssl¾ÍÖ´ĞĞ
+#å¦‚éœ€å¼€å¯sslå°±æ‰§è¡Œ
 #mysql_ssl_rsa_setup 
 
 systemctl start mysqld
 
-(ÉèÖÃ¿ª»úÆô¶¯)
+(è®¾ç½®å¼€æœºå¯åŠ¨)
 systemctl enable mysqld
 
-Éú³ÉÒ»¸öËæ»ú³õÊ¼ÃÜÂë£¨ÔÚÏÂÃæÉú³ÉµÄ×Ö·û´®µÄÄ©Î²£¬Çø·Ö´óĞ¡Ğ´£©
+ç”Ÿæˆä¸€ä¸ªéšæœºåˆå§‹å¯†ç ï¼ˆåœ¨ä¸‹é¢ç”Ÿæˆçš„å­—ç¬¦ä¸²çš„æœ«å°¾ï¼ŒåŒºåˆ†å¤§å°å†™ï¼‰
 grep 'temporary password' /var/log/mysqld.log
 
 mysql -u root -p
 
-//ÓÃËæ»ú³õÊ¼ÃÜÂëµÇÂ¼ºóĞŞ¸ÄÃÜÂëÎªroot
+//ç”¨éšæœºåˆå§‹å¯†ç ç™»å½•åä¿®æ”¹å¯†ç ä¸ºroot
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; 
 
 
-¿ªÆôÔ¶³Ì·şÎñ
+å¼€å¯è¿œç¨‹æœåŠ¡
 CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password  BY 'root';   
-//ĞŞ¸ÄÃÜÂëÈÏÖ¤·½Ê½Îªmysql_native_password
+//ä¿®æ”¹å¯†ç è®¤è¯æ–¹å¼ä¸ºmysql_native_password
 
  GRANT ALL privileges ON *.* TO 'root'@'%';
 
@@ -41,18 +41,11 @@ vi /etc/sysconfig/iptables
 systemctl restart iptables.service
 	
 
-ĞŞ¸Ämy.cnf ÎÄ¼ş ĞÂÔöÒÔÏÂĞĞ
+ä¿®æ”¹my.cnf æ–‡ä»¶ æ–°å¢ä»¥ä¸‹è¡Œ
 sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
 skip-name-resolve
-#skip-networking ¸ÃÏîĞèÒª×¢ÊÍ
+#skip-networking è¯¥é¡¹éœ€è¦æ³¨é‡Š
 skip_ssl 
 
 systemctl restart mysqld
 
-ÔËĞĞ³ÌĞò±¨ÒÔÏÂ´íÎóµÄÊ±ºò(³öÏÖ³¡¾° sql group by Óï¾ä ²»ÑÏ¸ñ£©
-£¨Expression #1 of SELECT list is not in GROUP BY clause and contains nonaggregated column  which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by£©
-navicat Á¬½Óµ½¶ÔÓ¦µÄ·şÎñÆ÷->f6½øÈëÃüÁîĞĞÄ£Ê½
- set GLOBAL sql_mode ='NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES ';
-
-#mysqlÅäÖÃÓÅ»¯
-https://blog.csdn.net/lifetragedy/article/details/52582789
