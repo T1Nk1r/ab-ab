@@ -1,15 +1,15 @@
-ÏÂÔØ¶ÔÓ¦µÄtomcat°æ±¾
+ä¸‹è½½å¯¹åº”çš„tomcatç‰ˆæœ¬
 
 tar -zxvf ..... 
 
-vi /etc/init.d/tomcat  £¨ĞÂ½¨tomcat·şÎñ½Å±¾£©
+vi /etc/init.d/tomcat  ï¼ˆæ–°å»ºtomcatæœåŠ¡è„šæœ¬ï¼‰
 
 #!/bin/bash
 # description: Tomcat Start Stop Restart
 # processname: tomcat
 # chkconfig: 234 20 80
 
-CATALINA_HOME= tomcat Â·¾¶
+CATALINA_HOME= tomcat è·¯å¾„
 
 case $1 in
         start)
