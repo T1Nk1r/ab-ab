@@ -1,0 +1,7 @@
+<!-- redis Start   -->
+    <add key="SessionExpireMinutes" value="180" />
+    <add key="redis_server_master_session" value="127.0.0.1:6379" />
+    <add key="redis_server_slave_session" value="127.0.0.1:6380" />
+    <add key="redis_max_read_pool" value="300" />
+    <add key="redis_max_write_pool" value="100" />
+<!--redis end-->
