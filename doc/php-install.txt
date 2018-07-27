@@ -1,0 +1,127 @@
+yum install -y php72w-common php72w-devel php72w-fpm php72w-cli  mod_php72w php72w-bcmath  php72w-mbstring  php72w-mysqlnd php72w-opcache php72w-pear  php72w-xml
+
+yum -y install libxml2  libxml2-devel bzip2 bzip2-devel curl curl-devel libxslt libxslt-devel   
+yum -y install pcre-devel  freetype freetype-devel pcre  openssl openssl-devel libjpeg libjpeg-devel libpng libpng-devel
+
+wget http://hk2.php.net/get/php-7.2.7.tar.gz/from/this/mirror
+tar -zxvf mirror
+cd php-7.2.7
+./configure --prefix=/usr/local/php --with-curl --with-config-file-path=/usr/local/php --with-freetype-dir --with-gd --with-gettext --with-iconv-dir --with-kerberos \
+--with-libxml-dir --with-libdir=lib64  --with-mysqli   --with-pcre-regex --with-pdo-mysql --with-pdo-sqlite --with-pear --with-png-dir  \
+--with-jpeg-dir --with-xmlrpc --with-xsl --with-zlib-dir=/usr/local/zlib --with-bz2 --with-mhash --enable-fpm --enable-bcmath --enable-libxml  \
+--enable-inline-optimization --enable-mbregex --enable-mbstring --enable-opcache --enable-pcntl   \
+--enable-shmop --enable-soap --enable-sockets --enable-sysvsem --enable-sysvshm --enable-xml --enable-zip  
+
+make clean && make && make install   
+
+cp php.ini-development /usr/local/php/lib/php.ini
+cp /usr/local/php/etc/php-fpm.conf.default /usr/local/php/etc/php-fpm.conf
+cp sapi/fpm/php-fpm /usr/local/bin
+cp /usr/local/php/etc/php-fpm.d/www.conf.default /usr/local/php/etc/php-fpm.d/www.conf
+   
+#创建web 用户
+groupadd www-data
+useradd -g www-data www-data
+
+vi /usr/local/php/etc/php-fpm.conf
+#找到pid = run/php-fpm.pid 项，删除前面的 ; 号
+
+vi /usr/local/php/lib/php.ini	
+#找到cgi.fix_pathinfo配置项,把值设为0
+
+vi /usr/local/php/etc/php-fpm.d/www.conf
+user = nobody
+group = nobody
+改为
+user = www-data
+group = www-data
+
+#启动php-fpm
+/usr/local/bin/php-fpm
+#查看是否启动成功
+netstat -tln | grep 9000
+
+cd /etc/init.d
+vi php-fpm
+
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:		php-fpm
+# Required-Start:       $network $remote_fs $syslog
+# Required-Stop:        $network $remote_fs $syslog
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	PHP-FPM server.
+# Description:		PHP is an HTML-embedded scripting language
+### END INIT INFO
+# config: /usr/local/php/etc/php.ini
+PHP_PATH=/usr/local
+DESC="php-fpm daemon"
+NAME=php-fpm
+# php-fpm路径
+DAEMON=$PHP_PATH/php/sbin/$NAME
+# 配置文件路径
+CONFIGFILE=$PHP_PATH/php/etc/php-fpm.conf
+# PID文件路径(在php-fpm.conf设置)
+PIDFILE=$PHP_PATH/php/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+ 
+# Gracefully exit if the package has been removed.
+test -x $DAEMON || exit 0
+ 
+rh_start() {
+  $DAEMON -y $CONFIGFILE || echo -n " already running"
+}
+ 
+rh_stop() {
+  kill -QUIT `cat $PIDFILE` || echo -n " not running"
+}
+ 
+rh_reload() {
+  kill -HUP `cat $PIDFILE` || echo -n " can't reload"
+}
+ 
+case "$1" in
+  start)
+        echo -n "Starting $DESC: $NAME"
+        rh_start
+        echo "."
+        ;;
+  stop)
+        echo -n "Stopping $DESC: $NAME"
+        rh_stop
+        echo "."
+        ;;
+  reload)
+        echo -n "Reloading $DESC configuration..."
+        rh_reload
+        echo "reloaded."
+  ;;
+  restart)
+        echo -n "Restarting $DESC: $NAME"
+        rh_stop
+        sleep 1
+        rh_start
+        echo "."
+        ;;
+  *)
+         echo "Usage: $SCRIPTNAME {start|stop|restart|reload}" >&2
+         exit 3
+        ;;
+esac
+exit 0
+
+
+
+	
+chmod 755 php-fpm
+systemctl enable php-fpm
+
+	
+	
+	
+	
+	
+	
+	
+	

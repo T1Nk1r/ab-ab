@@ -1,0 +1,177 @@
+##执行以下步骤需要先安装redis3.0+
+
+#以下为最小redis集群配置，根据自己需要修改，同主机集群只需要修改所有的PORT数值就可以了，不同主机修改IP-----------
+
+#redis 所在主机ip
+bind 172.18.168.82
+#端口,同一主机下端口不能相同。不同主机可以相同
+port 7001
+#后台方式运行
+daemonize yes  
+#pid文件位置
+pidfile /var/run/redis-7001.pid  
+#log位置
+logfile /usr/local/redis-4.0.10/redis-cluster/7001/redis.log 
+dir /usr/local/redis-4.0.10/redis-cluster/7001/ 
+cluster-enabled yes  
+cluster-config-file nodes-7001.conf 
+cluster-node-timeout 15000
+appendonly yes  
+appendfsync always
+
+#----------------
+
+#到redis根目录
+cd /usr/local/redis-4.0.10
+#创建redis集群实例的文件夹
+mkdir redis-cluster
+cd redis-cluster/
+#此处是在同一主机下建了6个redis实例，3主3从配置。redis-cluster 至少需要3主。
+mkdir 7001 7002 7003 7004 7005 7006
+#分别进入以上6个文件夹创建文件redis.conf ,把上面的配置文件复制到每一个 redis.conf ，port 修改对应文件夹数值
+cd 7001
+vi redis.conf
+i
+
+#redis 所在主机ip
+bind 172.18.168.82
+#端口,同一主机下端口不能相同。不同主机可以相同
+port 7001
+#后台方式运行
+daemonize yes  
+#pid文件位置
+pidfile /var/run/redis-7001.pid  
+#log位置
+logfile /usr/local/redis-4.0.10/redis-cluster/7001/redis.log 
+dir /usr/local/redis-4.0.10/redis-cluster/7001/ 
+cluster-enabled yes  
+cluster-config-file nodes-7001.conf 
+cluster-node-timeout 15000
+appendonly yes  
+appendfsync always
+
+#回到redis根目录
+cd ..
+#启动所有的redis实例
+redis-server ./redis-cluster/7001/redis.conf
+redis-server ./redis-cluster/7002/redis.conf
+redis-server ./redis-cluster/7003/redis.conf
+redis-server ./redis-cluster/7004/redis.conf
+redis-server ./redis-cluster/7005/redis.conf 
+redis-server ./redis-cluster/7006/redis.conf
+
+#查看redis 实例是否成功启动
+ps -ef | grep redis
+
+#安装ruby ，不能通过yum安装。Yum安装版本为2.0.0 此处需要至少2.2+
+gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+curl -sSL https://get.rvm.io | bash -s stable
+find / -name rvm -print
+source /usr/local/rvm/scripts/rvm
+
+#查看rvm库中已知的ruby版本
+rvm list known
+
+#选择一个版本安装，此处选择2.4.1  
+rvm install 2.4.1
+rvm use 2.4.1
+rvm use 2.4.1 --default	
+
+#开始安装redis 集群
+gem install redis
+
+#使用6个redis实例 创建集群
+ruby ./src/redis-trib.rb create --replicas 1 172.18.168.82:7001 172.18.168.82:7002 \
+172.18.168.82:7003 172.18.168.82:7004 172.18.168.82:7005 172.18.168.82:7006
+
+#提示选项输入 yes 确定主从分配
+#进入一个节点检查集群是否创建成功
+redis-cli -c -h 172.18.168.82 -p 7001
+cluster nodes
+exit
+
+#添加删除节点(增加需要先增加MASTER节点后添加SLAVE节点。)
+cd /usr/local/redis-4.0.10/redis-cluster
+#新增一主一从2个实例
+mkdir 7007 7008
+#把配置文件拷入到新实例文件夹并修改对应端口和IP信息
+cp 7001/redis.conf 7007
+cp 7001/redis.conf 7008
+
+#回到redis根目录
+cd /usr/local/redis-4.0.10
+#启动新增的2个redis实例
+redis-server ./redis-cluster/7007/redis.conf
+redis-server ./redis-cluster/7008/redis.conf
+
+#查看redis 实例，此时应有8个启动的redis
+ps -ef | grep redis
+
+#将新增的2个实例添加到之前创建的集群中,此处添加的是只能是master节点.前一个ip:port 为需要新增的redis ip:port,后一个为随便之前一个集群内的 ip:port
+ruby ./src/redis-trib.rb add-node 172.18.168.82:7007 172.18.168.82:7001
+
+#查看已有的redis cluster nodes
+redis-cli -c -h 172.18.168.82 -p 7001
+#现在应是4个master节点，3个slave节点
+cluster nodes
+#记录下新加入的172.18.168.82:7001 的id，下面需要使用
+exit
+
+#新节点添加成功以后不会有任何数据，需要手动分配哈希slots.
+#只能指定之前存在的master节点分配slots给新加入的master节点(或者选择性能稍差的服务器节点分配,但是只能是master节点)
+ruby ./src/redis-trib.rb reshard 172.18.168.82:7001
+
+#此时需要你输入需要分配出来的slots数量，此处选择172.18.168.82:7001 这个master节点分配1000个slots给新的7007master节点(这个数量需要记下来，删除master节点需要这个值)
+1000
+#需要输入172.18.168.82:7007 节点的ID
+............
+all
+yes
+
+#查看是否已分配到slots
+redis-cli -c -h 172.18.168.82 -p 7007
+cluster nodes
+exit
+
+#将7008 加入到节点
+ruby ./src/redis-trib.rb add-node 172.18.168.82:7008 172.18.168.82:7001
+
+#将7008设置为7007的从节点
+redis-cli -c -h 172.18.168.82 -p 7008
+cluster replicate  7007的ID
+#此时显示为4主4从即添加成功!
+
+
+#删除redis 集群节点(需要先删除slave节点，移除master分配到的slots，最后才删除主节点)
+#删除slave节点7008  ruby ./src/redis-trib.rb del-node ip:port  redis-id
+cd /usr/local/redis-4.0.10
+ruby ./src/redis-trib.rb del-node 172.18.168.82:7008  7008的ID
+#把要删除的master节点的slots分配出去
+ruby ./src/redis-trib.rb reshard 172.18.168.82:7007
+#输入要分配出去的slots数量(slots 数量为 该master节点现有的数量-1)
+#按提示输入准备接收slots的redis master id
+done
+yes
+#查看slots是否分配出去
+redis-cli -c -h 172.18.168.82 -p 7007
+cluster nodes
+exit
+
+#删除7007 节点
+ruby ./src/redis-trib.rb del-node 172.18.168.82:7007  7007的ID
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
