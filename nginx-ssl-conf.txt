@@ -1,0 +1,173 @@
+#1、全局块：配置影响nginx全局的指令。一般有运行nginx服务器的用户组，nginx进程pid存放路径，
+#日志存放路径，配置文件引入，允许生成worker process数等。
+#2、events块：配置影响nginx服务器或与用户的网络连接。有每个进程的最大连接数，
+#选取哪种事件驱动模型处理连接请求，是否允许同时接受多个网路连接，开启多个网络连接序列化等。
+#3、http块：可以嵌套多个server，配置代理，缓存，日志定义等绝大多数功能和第三方模块的配置。
+#4、upstream块：负载均衡列的服务器列表
+#如文件引入，mime-type定义，日志自定义，是否使用sendfile传输文件，连接超时时间，单连接请求数等。
+#5、server块：配置虚拟主机的相关参数，一个http中可以有多个server。
+#6、location块：配置请求的路由，以及各种页面的处理情况。
+########### 每个指令必须有分号结束。#################
+###########  '{'  符号前一定要有空格！ #################
+########### nginx 编译安装的时候要指定SSL模块，如果没有需要重新编译安装 ##########
+
+#-------------------------------------全局块---------------------------------------
+#全局设置
+#配置用户或者组，默认为nobody nobody。
+user  root root;
+#允许生成的进程数，默认为1。设置为auto 自动检测。
+worker_processes  auto;
+#该参数需要设置服务器进程最大可打开文件数量值
+worker_rlimit_nofile 65535;
+
+#日志文件存放地址
+#日志级别为 debug|info|notice|warn|error|crit|alert|emerg
+error_log  logs/error.log  warn;
+
+#指定nginx进程运行文件存放地址
+pid  logs/nginx.pid; 
+
+#------------------------------------全局 end---------------------------------------
+
+#------------------------------------events块---------------------------------------
+#工作模式及连接数上限
+events {
+    use epoll;
+	#单个worker进程同时打开的最大连接数，随着访问量增加逐渐提高该值,该值不能随意增大，应逐渐测试，过大会使处理时间增大
+    worker_connections 2048; 
+}
+
+#-------------------------------------events end------------------------------------
+
+#-------------------------------------http块----------------------------------------
+#设定http服务器，利用它的反向代理功能提供负载均衡支持
+http {
+
+	#--------------------------------http 全局 块-----------------------------------
+	#设定mime类型,类型由mime.type文件定义
+    include       mime.types;
+    default_type  application/octet-stream;
+	
+	#设置我们的头文件中的默认的字符集
+	charset UTF-8; 
+	
+	#关闭在错误页面中的nginx版本数字
+	server_tokens off; 
+	
+	#关闭访问日志提高IO
+	access_log off; 
+	
+	#指令指定 nginx 是否调用 sendfile 函数（zero copy 方式）来输出文件
+    sendfile        on;
+	
+	#将tcp_nopush和tcp_nodelay两个指令设置为on用于防止网络阻塞
+    tcp_nopush     on;
+	tcp_nodelay     on;
+	
+	#关闭不响应的客户端连接。这将会释放那个客户端所占有的内存空间。
+	reset_timedout_connection on;
+	 
+	
+	#连接超时时间
+    keepalive_timeout  10;
+
+	#开启gzip压缩，减少我们发送的数据量
+    gzip  on;
+	#大于1k的文件才压缩
+	gzip_min_length 1k;
+	#压缩级别,数字越大压缩效果越好，时间越长
+	gzip_comp_level 4;
+	#需要压缩的文件类型
+	gzip_types text/plain application/x-javascript text/css application/xml text/javascript application/x-httpd-php image/jpeg image/gif image/png;
+	#禁用IE7以下的版本压
+	gzip_disable "MSIE [1-6].";
+	
+	#设定请求缓冲
+    client_header_buffer_size    1k;
+    large_client_header_buffers  4 4k;
+	
+	#客户端断网时，nginx服务器是否中断对被代理服务器的请求。
+	proxy_ignore_client_abort on; 
+	
+	#如果被代理服务器返回的状态码为400或者大于400，设置的error_page配置起作用。默认为off。
+	proxy_intercept_errors on;    
+	
+	#后端真实IP地址和前端显示域名的转换 xxx.com 为前端url地址	
+	#proxy_redirect ~^http://192.168.1.154:8080(.*)   http://www.tinker.com$1;
+	proxy_redirect http://xxx.com(.*)  http://$host:$server_port$1;
+			
+	#后端的Web服务器可以通过X-Forwarded-For获取用户真实IP		
+	#非80端口需要加上端口号 proxy_set_header Host $host:$server_port;
+    proxy_set_header Host $host;
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	#区分实际用户是走的http还是https
+	proxy_set_header X-Forwarded-Proto  $scheme;  
+			
+	#nginx服务器与被代理的服务器建立连接的超时时间.
+	proxy_connect_timeout 1; 
+	#nginx服务器向被代理服务器组发出read请求后，等待响应的超时间。	
+	proxy_read_timeout 1; 
+	#nginx服务器向被代理服务器组发出write请求后，等待响应的超时间。
+	proxy_send_timeout 1;	
+	
+	proxy_temp_path /usr/local/nginx/temp;
+	
+	#设定负载均衡的服务器列表
+	upstream tomcat {
+		#按weight值的大小分发请求，值越大分发到的请求越多。
+	    #服务器硬件越好的机器值应该设越大，各个服务器性能差距越大他们的差值也应该越大。
+	    #后端有多少服务器就写上多少。同一机器上需要修改Port.
+	    #server  ip:port;
+	    server 127.0.0.1:8080 fail_timeout=0;
+	}
+	
+	#--------------------------------http 全局 end----------------------------------
+
+	#-------------------------------http server 块----------------------------------
+    server {
+	    #http需要监听的端口号
+        listen       80;
+        server_name  www.tinker.com;
+		#转发http请求到https
+        rewrite ^(.*)$  https://$host$1 permanent; 
+		#----------------------------location end----------------------------------
+    }
+
+
+    # HTTPS server
+    server {
+		#https需要监听的端口号
+        listen       443;
+		#真实域名
+        server_name  www.tinker.com;
+        ssl                  on;
+		#cert 和 key 文件需要绝对路径
+        ssl_certificate       server_cert_address;
+        ssl_certificate_key   server_key_address;
+		ssl_session_cache     shared:SSL:1m;
+        ssl_session_timeout   5m;
+        ssl_protocols TLSv1;
+        ssl_ciphers  HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers   on;
+
+        location / {
+            client_max_body_size    16m;
+            client_body_buffer_size 128k;
+            proxy_pass    http://tomcat;
+
+            proxy_next_upstream   off;
+        }
+
+    }
+	#-------------------------------http server end----------------------------------
+
+}
+#-------------------------------------http end----------------------------------------
+
+#tomcat增加对https协议的支持
+#1.Connector节点加入 redirectPort="443" proxyPort="443"
+#2.Engine 模块下加入新的Value节点 <Valve className="org.apache.catalina.valves.RemoteIpValve"
+#remoteIpHeader="X-Forwarded-For"
+#protocolHeader="X-Forwarded-Proto"
+protocolHeaderHttpsValue="https" httpsServerPort="443"/>
